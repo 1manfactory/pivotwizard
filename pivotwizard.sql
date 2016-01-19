@@ -1,15 +1,15 @@
 CREATE DEFINER = 'root'@'%'
-PROCEDURE DB.pivotwizard(IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255), IN `P_From` VARCHAR(4000), IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Savetable` VARCHAR(255)
+PROCEDURE npreports.pivotwizard(IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255), IN `P_From` VARCHAR(4000), IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Savetable` VARCHAR(255)
   )
 ThisSP:BEGIN
  DECLARE done INT DEFAULT 0;
- DECLARE colsum float DEFAULT 0;
- DECLARE M_Count_Columns int DEFAULT 0;
- DECLARE M_Column_Field varchar(60);
- DECLARE M_Columns VARCHAR(8000) DEFAULT '';
+ DECLARE colsum FLOAT DEFAULT 0;
+ DECLARE M_Count_Columns INT DEFAULT 0;
+ DECLARE M_Column_Field VARCHAR(60);
+ DECLARE M_Columns longtext DEFAULT '';
  DECLARE M_orderbyfield VARCHAR(60);
- DECLARE M_sqltext, M_sqltext2, M_rowsumstring, M_wherestring VARCHAR(8000);
- DECLARE M_stmt VARCHAR(8000);
+ DECLARE M_sqltext, M_sqltext2, M_rowsumstring, M_wherestring LONGTEXT;
+ DECLARE M_stmt LONGTEXT;
  DECLARE cur1 CURSOR FOR SELECT CAST(Column_Field AS CHAR) FROM Temp;
  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 
@@ -45,15 +45,18 @@ ThisSP:BEGIN
       IF (NOT done) and (M_Column_Field IS NOT NULL) THEN
          SET M_Columns = CONCAT(M_Columns,
 
- 	' CAST(REPLACE( GROUP_CONCAT( CASE WHEN ',P_Column_Field,'=''',M_Column_Field,'''',
+ 	' CAST(REPLACE( GROUP_CONCAT( CASE WHEN ',P_Column_Field,'="',M_Column_Field,'"',
          		' THEN ',P_Value,
-                  ' ELSE NULL END, ''''), '','', '''') AS DECIMAL(20,10)) AS ''', M_Column_Field ,''',');
+                  ' ELSE NULL END, ''''), '','', '''') AS DECIMAL(20,10)) AS "', M_Column_Field ,'",');
           
       END IF;
     UNTIL done END REPEAT;
 #SELECT colsum;LEAVE ThisSP;
-    SET M_Columns = Left(M_Columns,Length(M_Columns)-1);
+    SET M_Columns = Left(M_Columns,CHAR_LENGTH(M_Columns)-1);
+    #SELECT  CHAR_LENGTH(M_Columns), LENGTH(M_Columns);LEAVE ThisSP;
+    #SELECT RIGHT(M_Columns,1);
 #SELECT M_Columns;LEAVE ThisSP;
+
     
     IF (P_Rowsumname<>'') THEN
       SET M_rowsumstring=CONCAT(', (SELECT SUM(',P_Value,') FROM ',P_From,' tab2 WHERE ',M_wherestring,' AND tab1.',P_Row_Field,'=tab2.',P_Row_Field,') AS ', P_Rowsumname);
