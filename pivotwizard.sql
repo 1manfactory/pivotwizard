@@ -1,5 +1,5 @@
 CREATE DEFINER = 'root'@'%'
-PROCEDURE npreports.pivotwizard(IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255), IN `P_From` VARCHAR(4000), IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Savetable` VARCHAR(255)
+PROCEDURE npreports.pivotwizard(IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255), IN `P_From` VARCHAR(4000), IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Collimit` int, IN `P_Savetable` VARCHAR(255)
   )
 ThisSP:BEGIN
  DECLARE done INT DEFAULT 0;
@@ -21,12 +21,18 @@ ThisSP:BEGIN
     END IF;
 
  DROP TABLE IF EXISTS Temp;
+
+ # detect which columns to retrieve in final result table
  SET @M_sqltext = CONCAT('CREATE TEMPORARY TABLE Temp ',
-                   ' SELECT DISTINCT ',P_Column_Field, 
-				' AS Column_Field',
-                   ' FROM ',P_From,
-                   ' WHERE ', M_wherestring,
-                   ' ORDER BY ', P_Column_Field);
+                          ' SELECT ', P_Column_Field, ' AS Column_Field,',
+                          ' SUM(', P_Value, ')',
+
+                          ' FROM ',P_From,
+                          ' WHERE ', M_wherestring,
+                          ' GROUP BY ', P_Column_Field,
+                          ' ORDER BY SUM(', P_Value, ') DESC',
+                          ' LIMIT ', P_Collimit,';'
+                        );
 
  #SELECT @M_sqltext;LEAVE ThisSP;
  PREPARE M_stmt FROM @M_sqltext;
