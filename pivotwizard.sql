@@ -1,5 +1,5 @@
 CREATE DEFINER = 'root'@'%'
-PROCEDURE npreports.pivotwizard(IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255), IN `P_From` VARCHAR(4000), IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Collimit` int, IN `P_Savetable` VARCHAR(255)
+PROCEDURE npreports.pivotwizard(IN `P_From` VARCHAR(255), IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255),  IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Collimit` int, IN `P_Savetable` VARCHAR(255)
   )
 ThisSP:BEGIN
  DECLARE done INT DEFAULT 0;
@@ -22,11 +22,13 @@ ThisSP:BEGIN
 
  DROP TABLE IF EXISTS Temp;
 
+# Ziel
+# SELECT Shop, SUM(Einheiten), SUM(Gewinn) FROM zahlen_shop_monatlich_mv WHERE 1=1 GROUP BY Shop ORDER BY SUM(Gewinn) DESC LIMIT 10;
+#
  # detect which columns to retrieve in final result table
  SET @M_sqltext = CONCAT('CREATE TEMPORARY TABLE Temp ',
                           ' SELECT ', P_Column_Field, ' AS Column_Field,',
                           ' SUM(', P_Value, ')',
-
                           ' FROM ',P_From,
                           ' WHERE ', M_wherestring,
                           ' GROUP BY ', P_Column_Field,
@@ -63,7 +65,7 @@ ThisSP:BEGIN
     #SELECT RIGHT(M_Columns,1);
 #SELECT M_Columns;LEAVE ThisSP;
 
-    
+    # add a column
     IF (P_Rowsumname<>'') THEN
       SET M_rowsumstring=CONCAT(', (SELECT SUM(',P_Value,') FROM ',P_From,' tab2 WHERE ',M_wherestring,' AND tab1.',P_Row_Field,'=tab2.',P_Row_Field,') AS ', P_Rowsumname);
     ELSE
