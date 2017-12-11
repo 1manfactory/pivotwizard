@@ -1,4 +1,4 @@
-CREATE DEFINER = 'root'@'%'
+CREATE DEFINER = 'root'@'192.168.%.%'
 PROCEDURE npreports.pivotwizard(IN `P_From` VARCHAR(255), IN `P_Row_Field` VARCHAR(255), IN `P_Column_Field` VARCHAR(255), IN `P_Value` VARCHAR(255),  IN `P_Where` VARCHAR(4000), IN `P_Rowsumname` VARCHAR(255), IN `P_Orderby` VARCHAR(255), IN `P_Collimit` int, IN `P_Savetable` VARCHAR(255)
   )
 ThisSP:BEGIN
@@ -20,11 +20,17 @@ ThisSP:BEGIN
       SET M_wherestring='1=1';
     END IF;
 
+    IF (P_Collimit IS null) then
+      SET P_Collimit=20;
+    END IF;
+
  DROP TABLE IF EXISTS Temp;
 
 # Ziel
 # SELECT Shop, SUM(Einheiten), SUM(Gewinn) FROM zahlen_shop_monatlich_mv WHERE 1=1 GROUP BY Shop ORDER BY SUM(Gewinn) DESC LIMIT 10;
-#
+# oder
+# SELECT Autor, SUM(Einheiten), SUM(Gewinn) FROM zahlen_autoren_monatlich_mv WHERE 1=1 GROUP BY Autor ORDER BY SUM(Gewinn) DESC LIMIT 20;
+# 
  # detect which columns to retrieve in final result table
  SET @M_sqltext = CONCAT('CREATE TEMPORARY TABLE Temp ',
                           ' SELECT ', P_Column_Field, ' AS Column_Field,',
@@ -46,6 +52,8 @@ ThisSP:BEGIN
 
  WHERE Column_Field IS NOT NULL;
 
+ #SELECT M_Count_Columns;LEAVE ThisSP;
+
  IF (M_Count_Columns > 0) THEN
     OPEN cur1;
     REPEAT
@@ -59,7 +67,7 @@ ThisSP:BEGIN
           
       END IF;
     UNTIL done END REPEAT;
-#SELECT colsum;LEAVE ThisSP;
+#SELECT M_Columns;LEAVE ThisSP;
     SET M_Columns = Left(M_Columns,CHAR_LENGTH(M_Columns)-1);
     #SELECT  CHAR_LENGTH(M_Columns), LENGTH(M_Columns);LEAVE ThisSP;
     #SELECT RIGHT(M_Columns,1);
@@ -102,10 +110,21 @@ ELSE
 END IF;
 #SELECT @M_sqltext;LEAVE ThisSP;
  
- 
+ # Ergebnis ausgaben bzw. produzieren
  PREPARE M_stmt FROM @M_sqltext;
+ EXECUTE M_stmt;
+ DEALLOCATE PREPARE M_stmt;
 
+
+IF (P_Savetable<>'') THEN
+    SET @query = CONCAT ('ALTER TABLE ',P_Savetable,' ROW_FORMAT=DYNAMIC;');
+#SELECT @query;LEAVE ThisSP;
+    PREPARE M_stmt FROM @query;
     EXECUTE M_stmt;
+    DEALLOCATE PREPARE M_stmt;
+END IF;
+
+
   END IF;
   
 END
